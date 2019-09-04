@@ -2,7 +2,14 @@
 
 var five = require('johnny-five');
 var board = new five.Board();
-var keypress = require('keypress');
+
+var GamePad = require( 'node-gamepad' );
+var controller = new GamePad( 'snes/retrolink' );
+controller.connect();
+
+var FAST_SPEED = 230;
+var NORMAL_SPEED = 200;
+var SLOW_SPEED = 150;
 
 board.on('ready', function() {
   // Use your shield configuration from the list
@@ -13,114 +20,121 @@ board.on('ready', function() {
     configs.M2
   ]);
 
-  // If you want to add a servo to your motor shield:
-  // You can also use continuous servos: new five.Servo.Continuous(10)
-  var servo1 = new five.Servo(10);
-
-  // Requires soldering lead to A0 pin on motor controller
-  // http://johnny-five.io/examples/proximity-hcsr04-analog/
-  // var proximity = new five.Proximity({
-  //   controller: 'HCSR04',
-  //   pin: 'A0'
-  // });
-
-  // Requires soldering lead to D3 pin on motor controller
-  // new five.Piezo({
-  //   pin: 3
-  // });
-
   this.repl.inject({
-    motors: motors,
-    servo1: servo1
+    motors: motors
   });
 
   console.log('Welcome to the Motorized SumoBot!');
   console.log('Control the bot with the arrow keys, and SPACE to stop.');
 
+  const setAsyncTimeout = (cb, timeout = 0) => new Promise(resolve => {
+    setTimeout(() => {
+      cb();
+      resolve();
+    }, timeout);
+  });
+
+  async function doFor(func, ms) {
+    func();
+    await setAsyncTimeout(() => {
+      stop();
+    }, ms);
+  }
+
+  async function dance() {
+    console.log('Dancing');
+    await doFor(forward, 2500);
+    await doFor(left, 2000);
+    await doFor(right, 2000);
+    await doFor(backward, 2500);
+    //motors.fwd(NORMAL_SPEED);
+    //setTimeout(() => {
+    //  motors.rev(NORMAL_SPEED);
+    //}, 200);
+  }
+
   function forward() {
     console.log('Going forward');
-    motors.fwd(230);
+    motors.fwd(NORMAL_SPEED);
   }
 
   function backward() {
     console.log('Going backward');
-    motors.rev(230);
+    motors.rev(NORMAL_SPEED);
   }
 
   function left() {
     console.log('Going left');
-    motors[0].rev(200);
-    motors[1].fwd(200);
+    motors[0].rev(NORMAL_SPEED);
+    motors[1].fwd(NORMAL_SPEED);
   }
 
   function right() {
     console.log('Going right');
-    motors[1].rev(200);
-    motors[0].fwd(200);
+    motors[1].rev(NORMAL_SPEED);
+    motors[0].fwd(NORMAL_SPEED);
   }
 
   function stop() {
     motors.stop();
-
-    // Optionally, stop servos from sweeping
-    servo1.stop();
   }
 
   function sweep() {
     console.log('Sweep the leg!!');
-
-    // Sweep from 0-180 (repeat)
-    servo1.sweep();
   }
 
   function turbo() {
     console.log('Turbo button engaged!');
-
-    motors.fwd(255);
+    motors.fwd(FAST_SPEED);
   }
 
-  keypress(process.stdin);
-  process.stdin.resume();
-  process.stdin.setEncoding('utf8');
-  process.stdin.setRawMode(true);
-  process.stdin.on('keypress', function (ch, key) {
+  controller.on( 'up:press', function() {
+    console.log( 'up' );
+    forward();
+  } );
 
-    if ( !key ) { return; }
+  controller.on( 'down:press', function() {
+    console.log( 'down' );
+    backward();
+  } );
 
-    if ( key.name === 'q' ) {
+  controller.on( 'left:press', function() {
+    console.log( 'left' );
+    left();
+  } );
 
-      console.log('Quitting');
-      stop();
-      process.exit();
+  controller.on( 'right:press', function() {
+    console.log( 'right' );
+    right();
+  } );
 
-    } else if ( key.name === 'up' ) {
+  controller.on( 'select:press', function() {
+    console.log( 'select' );
+    stop();
+  } );
 
-      forward();
+  controller.on( 'start:press', function() {
+    console.log( 'start' );
+    stop();
+  } );
 
-    } else if ( key.name === 'down' ) {
+  controller.on( 'b:press', function() {
+    console.log( 'b' );
+    dance();
+  } );
 
-      backward();
+  controller.on( 'a:press', function() {
+    console.log( 'a' );
+    turbo();
+  } );
 
-    } else if ( key.name === 'left' ) {
+  controller.on( 'x:press', function() {
+    console.log( 'x' );
+    dance();
+  } );
 
-      left();
-
-    } else if ( key.name === 'right' ) {
-
-      right();
-
-    } else if ( key.name === 'space' ) {
-
-      stop();
-
-    } else if ( key.name === 's' ) {
-
-      sweep();
-
-    } else if ( key.name === 't' ) {
-
-      turbo();
-
-    }
-  });
+  controller.on( 'y:press', function() {
+    console.log( 'y' );
+    turbo();
+  } );
 });

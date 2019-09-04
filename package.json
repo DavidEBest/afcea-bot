@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "johnny-five": "^0.15.0",
-    "keypress": "^0.2.1"
+    "keypress": "^0.2.1",
+    "node-gamepad": "^0.1.15",
+    "sleep": "^6.1.0"
   },
   "devDependencies": {
     "eslint": "^2.5.1"
